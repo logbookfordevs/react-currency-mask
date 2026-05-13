@@ -1,5 +1,7 @@
 /* eslint-disable react/display-name */
 
+import * as React from 'react';
+
 import { ChangeEvent, cloneElement, FocusEvent, KeyboardEvent } from 'react';
 import { useState, useEffect, forwardRef } from 'react';
 
@@ -106,7 +108,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, ICurrencyMaskProps>(
       );
     }
 
-    return cloneElement(InputElement, {
+    return cloneElement(InputElement as React.ReactElement<any>, {
       ...otherProps,
       ref,
       value: maskedValue,
