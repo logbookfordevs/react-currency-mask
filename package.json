@@ -40,10 +40,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/leoreisdias/react-currency-mask.git"
+    "url": "git+https://github.com/logbookfordevs/react-currency-mask.git"
   },
-  "homepage": "https://github.com/leoreisdias/react-currency-mask#readme",
+  "homepage": "https://github.com/logbookfordevs/react-currency-mask#readme",
   "bugs": {
-    "url": "https://github.com/leoreisdias/react-currency-mask/issues"
+    "url": "https://github.com/logbookfordevs/react-currency-mask/issues"
   }
 }
