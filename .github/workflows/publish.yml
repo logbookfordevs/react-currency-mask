@@ -1,67 +1,69 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: Publish
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - name: Install dependencies
-      run: |
-          if [ -e yarn.lock ]; then
-          yarn install --frozen-lockfile
-          elif [ -e package-lock.json ]; then
-          npm ci
-          else
-          npm i
-          fi
-    - run: npm run build --if-present
-    #- run: npm test
-    
   publish:
+    if: github.repository == 'logbookfordevs/react-currency-mask'
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
-    needs: [build]
-    permissions:
-      id-token: write  # Required for OIDC
-      contents: write  # semantic-release needs write access to create releases
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18.x'
-        cache: 'npm'
-    - run: |
-          if [ -e yarn.lock ]; then
-          yarn install --frozen-lockfile
-          elif [ -e package-lock.json ]; then
-          npm ci
-          else
-          npm i
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Verify release tag
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          package_version="$(node -p "require('./package.json').version")"
+
+          if [[ "$tag" != "v$package_version" ]]; then
+            echo "Release tag $tag does not match package.json version $package_version."
+            exit 1
           fi
-    - run: npm run semantic-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        NPM_CONFIG_PROVENANCE: true
-    
+
+          git fetch origin main --depth=1
+          release_sha="$(git rev-list -n 1 "$tag")"
+          main_sha="$(git rev-parse origin/main)"
+
+          if [[ "$release_sha" != "$main_sha" ]]; then
+            echo "Release tag $tag points at $release_sha, but origin/main is $main_sha."
+            exit 1
+          fi
+
+      - name: Run validation
+        run: yarn lint && yarn build
+
+      - name: Check package contents
+        run: npm pack --dry-run --ignore-scripts
+
+      - name: Publish to npm
+        run: npm publish --access public --ignore-scripts
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
