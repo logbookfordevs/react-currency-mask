@@ -1,5 +1,7 @@
 /* eslint-disable react/display-name */
 
+import * as React from 'react';
+
 import { ChangeEvent, cloneElement, FocusEvent, KeyboardEvent } from 'react';
 import { useState, useEffect, forwardRef } from 'react';
 
@@ -106,15 +108,22 @@ export const CurrencyInput = forwardRef<HTMLInputElement, ICurrencyMaskProps>(
       );
     }
 
-    return cloneElement(InputElement, {
-      ...otherProps,
-      ref,
-      value: maskedValue,
-      onChange: handleChange,
-      onBlur: handleBlur,
-      onFocus: handleFocus,
-      onKeyUp: handleKeyUp,
-    });
+    return cloneElement(
+      InputElement as React.ReactElement<
+        React.InputHTMLAttributes<HTMLInputElement> & {
+          ref?: React.Ref<HTMLInputElement>;
+        }
+      >,
+      {
+        ...otherProps,
+        ref,
+        value: maskedValue,
+        onChange: handleChange,
+        onBlur: handleBlur,
+        onFocus: handleFocus,
+        onKeyUp: handleKeyUp,
+      },
+    );
   },
 );
 
